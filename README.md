@@ -3,7 +3,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.24.0+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-一个基于人工智能的加密货币量化交易系统，专门用于ETH期货交易。系统集成了多种LLM提供商（DeepSeek、Qwen等）进行智能决策，并实现了高级技术指标分析和实时市场数据处理。[📊 Agent生成的报告预览](report.md)
+一个基于人工智能的加密货币量化交易系统，专门用于ETH期货交易。系统集成了多种LLM提供商（DeepSeek、Qwen等）进行智能决策，并实现了高级技术指标分析和实时市场数据处理。[📊 Agent生成的报告预览](REPORT.md)
 
 ## 🌟 主要特性
 
