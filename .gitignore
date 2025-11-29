@@ -1,0 +1,13 @@
+.vscode
+.idea
+*.code-workspace
+
+debug
+.log
+.DS_Store
+/log
+./main
+main
+/server
+nohup.out
+deeptrade
