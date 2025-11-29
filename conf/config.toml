@@ -1,0 +1,74 @@
+[binance]
+# 当前环境: testnet, production
+current_environment = "testnet"
+# 默认代理设置
+default_proxy = "http://127.0.0.1:33210"
+timeout = 30
+max_retries = 3
+
+[binance.testnet]
+name = "testnet"
+api_key = ""
+secret_key = ""
+futures_base_url = "https://testnet.binancefuture.com"
+futures_stream_url = "wss://stream.binancefuture.com"
+debug = false
+
+[binance.production]
+name = "production"
+api_key = ""
+secret_key = ""
+futures_base_url = "https://fapi.binance.com"
+futures_stream_url = "wss://fstream.binance.com"
+debug = false
+
+[[llm]]
+# kimi
+api_key = ""
+model = "kimi-k2-thinking"
+base_url = "https://api.moonshot.cn/v1"
+#开仓时使用
+entry_enable = false
+#持仓时使用-持仓时推荐使用更快的模型
+track_enable = false
+prefx = ""
+
+[[llm]]
+# deepseek官方
+api_key = ""
+model = "deepseek-reasoner"
+base_url = "https://api.deepseek.com/v1"
+#开仓时使用
+entry_enable = true
+#持仓时使用-持仓时推荐使用更快的模型
+track_enable = true
+extra = ""
+
+[[llm]]
+# 火山引擎 deepseek-v3-1-terminus
+api_key = ""
+model = "deepseek-v3-1-terminus"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+#开仓时使用
+entry_enable = false
+#持仓时使用-持仓时推荐使用更快的模型
+track_enable = false
+extra = "{\"thinking\":{\"type\":\"enabled\"}}"
+
+
+[[llm]]
+# 阿里百炼 deepseek-v3.2-exp
+api_key = ""
+model = "deepseek-v3.2-exp"
+base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+#开仓时使用
+entry_enable = false
+#持仓时使用-持仓时推荐使用更快的模型
+track_enable = false
+extra = "{\"enable_thinking\":true}"
+
+
+
+# 交易相关配置
+[trading]
+trigger_time = 20
