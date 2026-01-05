@@ -24,9 +24,10 @@ var cfg *Configuration
 
 // Configuration .
 type Configuration struct {
-	Binance BinanceConf `toml:"binance" yaml:"binance"`
-	LLM     []LLMConf   `toml:"llm" yaml:"llm"`
-	Trading TradingConf `toml:"trading" yaml:"trading"`
+	HTTPProxy string      `toml:"http_proxy" yaml:"http_proxy"`
+	Binance   BinanceConf `toml:"binance" yaml:"binance"`
+	LLM       []LLMConf   `toml:"llm" yaml:"llm"`
+	Trading   TradingConf `toml:"trading" yaml:"trading"`
 }
 
 // GetBinanceEnvironment 获取当前环境的币安配置
@@ -86,12 +87,9 @@ type RedisConf struct {
 // BinanceConf 币安交易配置
 type BinanceConf struct {
 	// 当前环境: testnet, production
-	CurrentEnvironment string `toml:"current_environment" yaml:"current_environment"`
-	// 默认代理设置
-	DefaultProxy                 string             `toml:"default_proxy" yaml:"default_proxy"`
+	CurrentEnvironment           string             `toml:"current_environment" yaml:"current_environment"`
 	BinanceEnvironmentTest       BinanceEnvironment `toml:"testnet" yaml:"testnet"`
 	BinanceEnvironmentProduction BinanceEnvironment `toml:"production" yaml:"production"`
-	ProxyURL                     string             `toml:"proxy_url" yaml:"proxy_url"`
 	Timeout                      int                `toml:"timeout" yaml:"timeout"`
 	MaxRetries                   int                `toml:"max_retries" yaml:"max_retries"`
 }
@@ -114,6 +112,7 @@ type LLMConf struct {
 	EntryEnable bool   `toml:"entry_enable" yaml:"entry_enable"`
 	TrackEnable bool   `toml:"track_enable" yaml:"track_enable"`
 	Extra       string `toml:"extra" yaml:"extra"`
+	Proxy       bool   `toml:"proxy" yaml:"proxy"`
 }
 
 // TradingConf 交易相关配置

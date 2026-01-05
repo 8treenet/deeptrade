@@ -64,7 +64,7 @@ func FormatRawOrderBookData(marketData *MarketData) string {
 		spread := bestAsk - bestBid
 		spreadPercent := spread / bestAsk * 100
 
-		analysis.WriteString(fmt.Sprintf("\n**基础统计**\n"))
+		analysis.WriteString("\n**基础统计**\n")
 		analysis.WriteString(fmt.Sprintf("  买一价: $%.2f | 卖一价: $%.2f\n", bestBid, bestAsk))
 		analysis.WriteString(fmt.Sprintf("  价差: $%.2f (%.3f%%)\n", spread, spreadPercent))
 		analysis.WriteString(fmt.Sprintf("  买量(前20): %.2f ETH | 卖量(前20): %.2f ETH\n", totalBidVolume, totalAskVolume))

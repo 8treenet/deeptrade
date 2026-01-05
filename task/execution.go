@@ -13,7 +13,13 @@ import (
 )
 
 // ExecuteTrade 执行交易（同时支持单向/双向持仓）
+// decisionID 参数用于关联Memory记录，可选传入
 func ExecuteTrade(signal *TradingSignal, marketData *MarketData) error {
+	return ExecuteTradeWithMemory(signal, marketData, "")
+}
+
+// ExecuteTradeWithMemory 执行交易并支持Memory更新
+func ExecuteTradeWithMemory(signal *TradingSignal, marketData *MarketData, decisionID string) error {
 	log.Printf("[交易执行] 准备执行交易: %s", signal.Action)
 
 	// 基本校验
@@ -33,6 +39,8 @@ func ExecuteTrade(signal *TradingSignal, marketData *MarketData) error {
 			return nil
 		}
 	}
+	// jdata, _ := json.Marshal(signal)
+	// utils.SendHtmlMail("deeptrade", string(jdata))
 	// 获取技术指标判断市场环境
 	technicalData := PrepareTechnicalData(marketData)
 
@@ -190,6 +198,45 @@ func ExecuteTrade(signal *TradingSignal, marketData *MarketData) error {
 
 	log.Println("[交易执行] 交易执行完成")
 	return nil
+}
+
+// getExecutedPrice 从订单结果中获取成交价格
+func getExecutedPrice(order *binance.Order) float64 {
+	if order == nil {
+		return 0
+	}
+	// 使用执行价格计算平均成交价
+	if order.ExecutedQty != "" && order.CumulativeQuoteQty != "" {
+		qty, err1 := strconv.ParseFloat(order.ExecutedQty, 64)
+		quote, err2 := strconv.ParseFloat(order.CumulativeQuoteQty, 64)
+		if err1 == nil && err2 == nil && qty > 0 {
+			return quote / qty
+		}
+	}
+	// 如果没有成交金额，使用订单价格
+	if order.Price != "" {
+		if price, err := strconv.ParseFloat(order.Price, 64); err == nil {
+			return price
+		}
+	}
+	return 0
+}
+
+// updateMemoryForClose 平仓时更新Memory记录
+func updateMemoryForClose(action string, exitPrice float64, positionInfo *PositionInfo) {
+	// 获取最近的开仓决策
+	lastOpen := GetLastOpenDecision()
+	if lastOpen == nil {
+		return
+	}
+
+	// 检查是否匹配
+	isLongClose := action == "CLOSE_LONG" && (lastOpen.Action == "OPEN_LONG" || lastOpen.Action == "ADD_LONG")
+	isShortClose := action == "CLOSE_SHORT" && (lastOpen.Action == "OPEN_SHORT" || lastOpen.Action == "ADD_SHORT")
+
+	if !isLongClose && !isShortClose {
+		return
+	}
 }
 
 // OrderParams 订单参数结构
@@ -353,7 +400,6 @@ func setStopLossAndTakeProfit(signal *TradingSignal, marketData *MarketData, cur
 	}
 	symbol := binance.ETHUSDT_PERP
 
-	// 设置止损
 	if finalStopLoss > 0.0 {
 		var slSide binance.OrderSide
 		if side == binance.OrderSideBuy {
@@ -361,11 +407,12 @@ func setStopLossAndTakeProfit(signal *TradingSignal, marketData *MarketData, cur
 		} else {
 			slSide = binance.OrderSideBuy
 		}
-		slOrder := &binance.NewOrderRequest{
+		slOrder := &binance.AlgoOrderRequest{
+			AlgoType:      "CONDITIONAL",
 			Symbol:        symbol,
 			Side:          slSide,
 			Type:          binance.OrderTypeStopMarket,
-			StopPrice:     fmt.Sprintf("%.2f", finalStopLoss),
+			TriggerPrice:  fmt.Sprintf("%.2f", finalStopLoss),
 			ClosePosition: true,
 			WorkingType:   binance.WorkingTypeMarkPrice,
 		}
@@ -375,15 +422,14 @@ func setStopLossAndTakeProfit(signal *TradingSignal, marketData *MarketData, cur
 		} else {
 			slFinalPosSide = ""
 		}
-		if _, err := client.NewOrder(slOrder, slFinalPosSide); err != nil {
+		if _, err := client.NewAlgoOrder(slOrder, slFinalPosSide); err != nil {
 			log.Printf("[交易执行] 设置止损单失败: %v", err)
 			e = fmt.Errorf("[交易执行] 设置止损单失败: %v", err)
 		} else {
-			log.Printf("[交易执行] 止损单设置成功，价格: %s (基于波动率%.2f%%)", slOrder.StopPrice, volatilityPct)
+			log.Printf("[交易执行] 止损单设置成功，价格: %.2f (基于波动率%.2f%%)", finalStopLoss, volatilityPct)
 		}
 	}
 
-	// 设置止盈
 	if finalTakeProfit > 0.0 {
 		var tpSide binance.OrderSide
 		if side == binance.OrderSideBuy {
@@ -391,11 +437,12 @@ func setStopLossAndTakeProfit(signal *TradingSignal, marketData *MarketData, cur
 		} else {
 			tpSide = binance.OrderSideBuy
 		}
-		tpOrder := &binance.NewOrderRequest{
+		tpOrder := &binance.AlgoOrderRequest{
+			AlgoType:      "CONDITIONAL",
 			Symbol:        symbol,
 			Side:          tpSide,
 			Type:          binance.OrderTypeTakeProfitMarket,
-			StopPrice:     fmt.Sprintf("%.2f", finalTakeProfit),
+			TriggerPrice:  fmt.Sprintf("%.2f", finalTakeProfit),
 			ClosePosition: true,
 			WorkingType:   binance.WorkingTypeMarkPrice,
 		}
@@ -405,11 +452,11 @@ func setStopLossAndTakeProfit(signal *TradingSignal, marketData *MarketData, cur
 		} else {
 			tpFinalPosSide = ""
 		}
-		if _, err := client.NewOrder(tpOrder, tpFinalPosSide); err != nil {
+		if _, err := client.NewAlgoOrder(tpOrder, tpFinalPosSide); err != nil {
 			log.Printf("[交易执行] 设置止盈单失败: %v", err)
 			e = fmt.Errorf("[交易执行] 设置止盈单失败: %v", err)
 		} else {
-			log.Printf("[交易执行] 止盈单设置成功，价格: %s (基于波动率%.2f%%)", tpOrder.StopPrice, volatilityPct)
+			log.Printf("[交易执行] 止盈单设置成功，价格: %.2f (基于波动率%.2f%%)", finalTakeProfit, volatilityPct)
 		}
 	}
 
@@ -465,7 +512,7 @@ func cancelStopLossAndTakeProfitOrders(client *binance.FuturesClient, symbol bin
 
 // handleAdjustSLTP 处理动态调整止损止盈的操作
 func handleAdjustSLTP(signal *TradingSignal, marketData *MarketData, technicalData *TechnicalAnalysisData) error {
-	log.Printf("[止损止盈调整] 开始处理动态调整止损止盈: %s", signal.Reasoning)
+	log.Printf("[止损止盈调整] 开始处理动态调整止损止盈: %s", signal.Memory)
 
 	// 基本校验
 	if signal.StopLoss == 0 && signal.TakeProfit == 0 {

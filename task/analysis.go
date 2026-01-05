@@ -30,6 +30,14 @@ func AnalyzeWithLLM(marketData *MarketData) (*TradingSignal, error) {
 
 	positionAnalysis := FormatPositionWithSLTP(marketData.Positions, marketData.OpenOrders)
 
+	// 多周期趋势分析
+	trendAnalysis := AnalyzeTrendBy15m(technicalData)
+	trendAnalysisStr := FormatTrendAnalysis(trendAnalysis)
+
+	// 支撑阻力位识别
+	srLevels := IdentifySupportResistance(technicalData)
+	srAnalysisStr := FormatSupportResistance(srLevels, technicalData.CurrentPrice)
+
 	// 构建用户消息
 	currentPrice := marketData.Ticker.LastPrice
 	priceChange := marketData.Ticker.PriceChangePercent
@@ -64,6 +72,12 @@ func AnalyzeWithLLM(marketData *MarketData) (*TradingSignal, error) {
 	 • 可用余额: %.2f USDT (可用于开仓)
 	 • 保证金余额: %.2f USDT
 
+## 多周期趋势分析 (15分钟)
+%s
+
+## 支撑阻力位
+%s
+
 ## 技术指标
 %s
 
@@ -73,7 +87,7 @@ func AnalyzeWithLLM(marketData *MarketData) (*TradingSignal, error) {
 ## 专业交易流分析
 %s
 
-## memory
+## 历史记忆 (最近15条)
 %s
 
 ## 资金状况
@@ -89,6 +103,8 @@ func AnalyzeWithLLM(marketData *MarketData) (*TradingSignal, error) {
 		currentPriceFloat, priceChangeFloat, positionAnalysis,
 		balanceInfo.WalletBalance, balanceInfo.AvailableBalance,
 		balanceInfo.MarginBalance,
+		trendAnalysisStr,
+		srAnalysisStr,
 		technicalAnalysis,
 		volumeAnalysis,
 		tradeFlowAnalysis,

@@ -5,8 +5,6 @@ import (
 	"deeptrade/conf"
 	"deeptrade/task"
 	tradeflow "deeptrade/task/trade_flow"
-	"deeptrade/utils"
-	"fmt"
 	"log"
 	"time"
 )
@@ -31,7 +29,6 @@ func main() {
 		// 直接执行量化交易
 		if err := task.RunQuantitativeTrading(); err != nil {
 			log.Printf("量化交易执行失败: %v, 30秒后重试", err)
-			utils.SendHtmlMail("DeepTrade通知", fmt.Sprintf("错误信息 %v", err))
 			time.Sleep(30 * time.Second)
 			continue
 		}

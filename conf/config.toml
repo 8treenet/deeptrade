@@ -1,8 +1,9 @@
+# 默认代理设置
+http_proxy = "http://127.0.0.1:33210"
+
 [binance]
 # 当前环境: testnet, production
 current_environment = "testnet"
-# 默认代理设置
-default_proxy = "http://127.0.0.1:33210"
 timeout = 30
 max_retries = 3
 
@@ -22,16 +23,6 @@ futures_base_url = "https://fapi.binance.com"
 futures_stream_url = "wss://fstream.binance.com"
 debug = false
 
-[[llm]]
-# kimi
-api_key = ""
-model = "kimi-k2-thinking"
-base_url = "https://api.moonshot.cn/v1"
-#开仓时使用
-entry_enable = false
-#持仓时使用-持仓时推荐使用更快的模型
-track_enable = false
-prefx = ""
 
 [[llm]]
 # deepseek官方
@@ -43,6 +34,7 @@ entry_enable = true
 #持仓时使用-持仓时推荐使用更快的模型
 track_enable = true
 extra = ""
+proxy = false
 
 [[llm]]
 # 火山引擎 deepseek-v3-1-terminus
@@ -54,7 +46,7 @@ entry_enable = false
 #持仓时使用-持仓时推荐使用更快的模型
 track_enable = false
 extra = "{\"thinking\":{\"type\":\"enabled\"}}"
-
+proxy = false
 
 [[llm]]
 # 阿里百炼 deepseek-v3.2-exp
@@ -66,8 +58,18 @@ entry_enable = false
 #持仓时使用-持仓时推荐使用更快的模型
 track_enable = false
 extra = "{\"enable_thinking\":true}"
+proxy = false
 
-
+[[llm]]
+# openrouter
+api_key = ""
+model = "google/gemma-4-31b-it"
+base_url = "https://openrouter.ai/api/v1"
+#开仓时使用
+entry_enable = false
+#持仓时使用-持仓时推荐使用更快的模型
+track_enable = false
+proxy = true
 
 # 交易相关配置
 [trading]

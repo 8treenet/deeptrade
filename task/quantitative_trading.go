@@ -3,8 +3,10 @@ package task
 import (
 	"deeptrade/binance"
 	"deeptrade/conf"
+	"deeptrade/indicators"
 	"deeptrade/utils"
 	"log"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -58,6 +60,7 @@ var (
 
 // IsWork 判断是否执行
 func IsWork() bool {
+	return true
 	now := time.Now()
 	h := now.Hour()
 	weekday := now.Weekday()
@@ -98,6 +101,9 @@ func RunQuantitativeTrading() error {
 		panic("异常")
 	}
 
+	// 2. 创建市场状态快照（在LLM分析前）
+	marketState := CreateMarketStateSnapshot(marketData)
+
 	// 3. LLM分析
 	signal, err := AnalyzeWithLLM(marketData)
 	if err != nil {
@@ -105,18 +111,84 @@ func RunQuantitativeTrading() error {
 		return err
 	}
 	log.Printf("[量化交易] 分析结果: %s (评分: %d, 置信度: %.2f%%)", signal.Action, signal.Score, signal.Confidence*100)
-	log.Printf("[量化交易] 分析理由: %s", signal.Reasoning)
+	log.Printf("[量化交易] 记忆: %s", signal.Memory)
 	log.Printf("[量化交易] 动作: %s，仓位: %v", signal.Action, signal.PositionSize)
 
-	// 4. 执行交易
-	err = ExecuteTrade(signal, marketData)
+	// 4. 先记录决策到Memory（获取decisionID）
+	decisionID := SetMemoryFromSignal(signal, marketState)
+	log.Printf("[量化交易] 决策已记录 ID: %s", decisionID)
+
+	// 5. 执行交易（传入decisionID用于更新入场价格）
+	err = ExecuteTradeWithMemory(signal, marketData, decisionID)
 	if err != nil {
 		log.Printf("[量化交易] 错误: 交易执行失败 - %v", err)
 		return err
 	}
-	SetMemory(signal.Memory)
+
 	refreshTimer()
 	return err
+}
+
+// CreateMarketStateSnapshot 创建市场状态快照
+func CreateMarketStateSnapshot(marketData *MarketData) MarketStateSnapshot {
+	snapshot := MarketStateSnapshot{}
+
+	// 获取当前价格
+	if marketData.Ticker != nil {
+		snapshot.Price, _ = strconv.ParseFloat(marketData.Ticker.LastPrice, 64)
+	}
+
+	// 准备技术分析数据
+	technicalData := PrepareTechnicalData(marketData)
+
+	// 获取趋势分析
+	trendAnalysis := AnalyzeTrendBy15m(technicalData)
+	snapshot.Trend = trendAnalysis.Direction
+	snapshot.TrendStrength = trendAnalysis.Strength
+
+	// 获取波动率
+	if len(technicalData.High3m) > 0 && len(technicalData.Low3m) > 0 && len(technicalData.Price3m) > 0 {
+		atr := indicators.GetLatestATR(technicalData.High3m, technicalData.Low3m, technicalData.Price3m, 14)
+		snapshot.Volatility = indicators.CalculateVolatilityPercent(atr, technicalData.CurrentPrice)
+	}
+
+	// 获取RSI
+	if len(technicalData.Price3m) > 0 {
+		ta := indicators.AnalyzeAll(technicalData.High3m, technicalData.Low3m, technicalData.Price3m, technicalData.CurrentPrice)
+		snapshot.RSI = ta.RSI
+
+		// MACD信号
+		macd := indicators.GetLatestMACD(technicalData.Price3m, 12, 26, 9)
+		if macd != nil && len(macd.MACDLine) > 0 && len(macd.SignalLine) > 0 {
+			lastMACD := macd.MACDLine[len(macd.MACDLine)-1]
+			lastSignal := macd.SignalLine[len(macd.SignalLine)-1]
+			if lastMACD > lastSignal {
+				snapshot.MACDSignal = "BULLISH"
+			} else if lastMACD < lastSignal {
+				snapshot.MACDSignal = "BEARISH"
+			} else {
+				snapshot.MACDSignal = "NEUTRAL"
+			}
+		}
+	}
+
+	// 获取支撑阻力位
+	srLevels := IdentifySupportResistance(technicalData)
+	for _, level := range srLevels {
+		if level.Type == "SUPPORT" && (snapshot.SupportLevel == 0 || level.Distance < (snapshot.Price-snapshot.SupportLevel)/snapshot.Price*100) {
+			snapshot.SupportLevel = level.Price
+		}
+		if level.Type == "RESISTANCE" && (snapshot.ResistanceLevel == 0 || level.Distance < (snapshot.ResistanceLevel-snapshot.Price)/snapshot.Price*100) {
+			snapshot.ResistanceLevel = level.Price
+		}
+	}
+
+	// 获取资金费率
+	if marketData.FundingRate != nil {
+		snapshot.FundingRate, _ = strconv.ParseFloat(marketData.FundingRate.FundingRate, 64)
+	}
+
+	return snapshot
 }
 
 func refreshTimer() {

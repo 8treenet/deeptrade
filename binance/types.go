@@ -297,10 +297,9 @@ func ParseTime(timeStr string) (int64, error) {
 
 // OpenInterest 持仓量
 type OpenInterest struct {
-	Symbol            string `json:"symbol"`            // 交易对
-	OpenInterest      string `json:"openInterest"`      // 持仓量
-	OpenInterestValue string `json:"openInterestValue"` // 持仓额
-	Timestamp         int64  `json:"timestamp"`         // 时间戳
+	Symbol       string `json:"symbol"`       // 交易对
+	OpenInterest string `json:"openInterest"` // 未平仓合约数量
+	Timestamp    int64  `json:"timestamp"`    // 时间戳
 }
 
 // TopLongShortPositionRatio 大户持仓量多空比
@@ -355,4 +354,40 @@ type BookTicker struct {
 	AskPrice string `json:"askPrice"` // 最优卖单价
 	AskQty   string `json:"askQty"`   // 最优卖单价挂单量
 	Time     int64  `json:"time"`     // 撮合引擎时间
+}
+
+type AlgoOrderRequest struct {
+	AlgoType      string      `json:"algoType"`      // 算法订单类型，目前只支持 CONDITIONAL
+	Symbol        Symbol      `json:"symbol"`        // 交易对
+	Side          OrderSide   `json:"side"`          // 买卖方向
+	Type          OrderType   `json:"type"`          // 订单类型: STOP_MARKET, TAKE_PROFIT_MARKET, STOP, TAKE_PROFIT
+	Quantity      string      `json:"quantity"`      // 数量
+	Price         string      `json:"price"`         // 价格(限价单)
+	TriggerPrice  string      `json:"triggerPrice"`  // 触发价格
+	WorkingType   WorkingType `json:"workingType"`   // 触发价格类型
+	ClosePosition bool        `json:"closePosition"` // 是否全部平仓
+	PriceProtect  string      `json:"priceProtect"`  // 价格保护
+	ReduceOnly    bool        `json:"reduceOnly"`    // 只减仓
+}
+
+type AlgoOrder struct {
+	AlgoId        int64     `json:"algoId"`        // 算法订单ID
+	ClientAlgoId  string    `json:"clientAlgoId"`  // 客户端算法订单ID
+	AlgoType      string    `json:"algoType"`      // 算法订单类型
+	OrderType     string    `json:"orderType"`     // 订单类型
+	Symbol        string    `json:"symbol"`        // 交易对
+	Side          OrderSide `json:"side"`          // 买卖方向
+	PositionSide  string    `json:"positionSide"`  // 持仓方向
+	TimeInForce   string    `json:"timeInForce"`   // 订单有效期
+	Quantity      string    `json:"quantity"`      // 数量
+	AlgoStatus    string    `json:"algoStatus"`    // 算法订单状态
+	TriggerPrice  string    `json:"triggerPrice"`  // 触发价格
+	Price         string    `json:"price"`         // 价格
+	ClosePosition bool      `json:"closePosition"` // 是否全部平仓
+	PriceProtect  bool      `json:"priceProtect"`  // 价格保护
+	ReduceOnly    bool      `json:"reduceOnly"`    // 只减仓
+	WorkingType   string    `json:"workingType"`   // 触发价格类型
+	CreateTime    int64     `json:"createTime"`    // 创建时间
+	UpdateTime    int64     `json:"updateTime"`    // 更新时间
+	TriggerTime   int64     `json:"triggerTime"`   // 触发时间
 }

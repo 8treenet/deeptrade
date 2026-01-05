@@ -4,16 +4,15 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"deeptrade/conf"
+	"deeptrade/utils"
 	"encoding/hex"
 	"fmt"
 	"log"
-	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
-
 	"time"
 )
 
@@ -100,13 +99,6 @@ func NewFuturesClientFromConfig() (*FuturesClient, error) {
 		RetryDelay:         1000,
 		RetryBackoff:       2,
 	}
-
-	// 设置代理
-	proxyURL := conf.Get().Binance.DefaultProxy
-	if proxyURL != "" {
-		config.ProxyURL = proxyURL
-	}
-
 	return NewFuturesClientFromClientConfig(config)
 }
 
@@ -118,7 +110,7 @@ func NewFuturesClientFromClientConfig(config *ClientConfig) (*FuturesClient, err
 
 	client := &FuturesClient{
 		clientConfig: config,
-		httpClient:   getHTTPClient(config),
+		httpClient:   utils.GetProxyHTTPClient(conf.Get().HTTPProxy, 10),
 		rateLimit:    NewRequestRateLimit(config.RateLimitRateLimit, config.RateLimitInterval),
 	}
 
@@ -143,35 +135,6 @@ func validateClientConfig(config *ClientConfig) error {
 		return NewError(ErrCodeInvalidRequest, "配置无效", "最大重试次数不能为负数", "")
 	}
 	return nil
-}
-
-// getHTTPClient 获取HTTP客户端
-func getHTTPClient(config *ClientConfig) *http.Client {
-	client := &http.Client{
-		Timeout: time.Duration(config.Timeout) * time.Second,
-	}
-
-	// 设置代理
-	if config.ProxyURL != "" {
-		proxyURL, err := url.Parse(config.ProxyURL)
-		if err != nil {
-			// 如果代理URL解析失败，记录警告但不影响客户端创建
-			if config.Debug {
-				fmt.Printf("[DEBUG] 代理URL解析失败: %v\n", err)
-			}
-			return client
-		}
-
-		client.Transport = &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		}
-
-		if config.Debug {
-			fmt.Printf("[DEBUG] 使用代理: %s\n", proxyURL.String())
-		}
-	}
-
-	return client
 }
 
 // sign 签名请求
