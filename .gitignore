@@ -11,5 +11,4 @@ main
 /server
 nohup.out
 deeptrade
-*.config.toml
-./conf/config.toml
+conf/ys_config.toml
