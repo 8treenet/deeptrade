@@ -297,10 +297,9 @@ func ParseTime(timeStr string) (int64, error) {
 
 // OpenInterest 持仓量
 type OpenInterest struct {
-	Symbol            string `json:"symbol"`            // 交易对
-	OpenInterest      string `json:"openInterest"`      // 持仓量
-	OpenInterestValue string `json:"openInterestValue"` // 持仓额
-	Timestamp         int64  `json:"timestamp"`         // 时间戳
+	Symbol       string `json:"symbol"`       // 交易对
+	OpenInterest string `json:"openInterest"` // 未平仓合约数量
+	Timestamp    int64  `json:"timestamp"`    // 时间戳
 }
 
 // TopLongShortPositionRatio 大户持仓量多空比

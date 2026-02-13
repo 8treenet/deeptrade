@@ -331,7 +331,7 @@ func FormatFundingAnalysis(marketData *MarketData) string {
 	var analysis strings.Builder
 	analysis.WriteString("资金费率:\n")
 
-	if marketData.FundingRate != nil {
+	if marketData.FundingRate != nil && marketData.FundingRate.FundingRate != "" {
 		rate, _ := strconv.ParseFloat(marketData.FundingRate.FundingRate, 64)
 		// 修正显示：rate本身就是小数形式，不需要额外乘100
 		analysis.WriteString(fmt.Sprintf("  当前资金费率: %.6f (每8小时结算)\n", rate))
@@ -355,7 +355,12 @@ func FormatFundingAnalysis(marketData *MarketData) string {
 				nextFunding.Format("15:04:05"), remaining.Round(time.Minute)))
 		}
 	} else {
-		analysis.WriteString("  资金费率数据: 暂无\n")
+		if marketData.FundingRate == nil {
+			analysis.WriteString("  资金费率数据: 暂无 (API返回nil)\n")
+		} else {
+			analysis.WriteString(fmt.Sprintf("  资金费率数据: 暂无 (FundingRate字段为空, Symbol=%s, Time=%d)\n",
+				marketData.FundingRate.Symbol, marketData.FundingRate.FundingTime))
+		}
 	}
 
 	// 持仓量分析
@@ -364,8 +369,8 @@ func FormatFundingAnalysis(marketData *MarketData) string {
 		oiFloat, err := strconv.ParseFloat(oiRaw, 64)
 		if err != nil {
 			analysis.WriteString(fmt.Sprintf("  未平仓合约: 数据解析错误 (原始值: '%s', 错误: %v)\n", oiRaw, err))
-		} else if oiFloat > 0 && oiFloat < 1000000000 { // 调整为10亿张的合理性检查
-			analysis.WriteString(fmt.Sprintf("  未平仓合约: %.0f 张\n", oiFloat))
+		} else if oiFloat > 0 && oiFloat < 100000000000 { // 调整为1000亿张的合理性检查(ETHUSDT合约每张0.001ETH，实际持仓量可达数十亿张)
+			analysis.WriteString(fmt.Sprintf("  未平仓合约: %.0f 张 (约 %.2f ETH)\n", oiFloat, oiFloat*0.001))
 		} else {
 			analysis.WriteString(fmt.Sprintf("  未平仓合约: 数据异常 (原始值: '%s', 解析后: %.0f, 可能是API返回格式问题)\n", oiRaw, oiFloat))
 		}

@@ -33,6 +33,8 @@ func ExecuteTrade(signal *TradingSignal, marketData *MarketData) error {
 			return nil
 		}
 	}
+	// jdata, _ := json.Marshal(signal)
+	// utils.SendHtmlMail("deeptrade", string(jdata))
 	// 获取技术指标判断市场环境
 	technicalData := PrepareTechnicalData(marketData)
 
