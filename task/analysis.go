@@ -73,7 +73,7 @@ func AnalyzeWithLLM(marketData *MarketData) (*TradingSignal, error) {
 ## 专业交易流分析
 %s
 
-## memory
+## 历史记忆 (最近10条)
 %s
 
 ## 资金状况
