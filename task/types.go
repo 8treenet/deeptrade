@@ -25,21 +25,20 @@ type FuturesAccountInfo = binance.FuturesAccountInfo
 
 // MarketData 完整的市场数据
 type MarketData struct {
-	Ticker              *FuturesTicker               // 24小时价格统计
-	Klines3m            []binance.Kline              // 3分钟K线数据
-	Klines1m            []binance.Kline              // 1分钟K线数据
-	OrderBook           *binance.Depth               // 订单簿深度
-	BookTicker          *binance.BookTicker          // 当前最优挂单信息
-	Positions           []binance.Position           // 当前持仓
-	Account             *FuturesAccountInfo          // 账户信息
-	MarkPrice           string                       // 标记价格
-	FundingRate         *binance.FundingRateHistory  // 资金费率
-	OpenInterest        *binance.OpenInterest        // 持仓量 (未平仓合约张数,非实际ETH)
-	OrderHistory        []binance.Order              // 历史订单数据
-	OpenOrders          []binance.Order              // 当前挂单数据
-	MarkPriceDetail     *binance.MarkPrice           // 详细标记价格数据
-	FundingRateHistorys []binance.FundingRateHistory // 资金费率历史
-	PositionInfo        *PositionInfo                //持仓信息
+	Ticker          *FuturesTicker              // 24小时价格统计
+	Klines3m        []binance.Kline             // 3分钟K线数据
+	Klines1m        []binance.Kline             // 1分钟K线数据
+	OrderBook       *binance.Depth              // 订单簿深度
+	BookTicker      *binance.BookTicker         // 当前最优挂单信息
+	Positions       []binance.Position          // 当前持仓
+	Account         *FuturesAccountInfo         // 账户信息
+	MarkPrice       string                      // 标记价格
+	FundingRate     *binance.FundingRateHistory // 资金费率
+	OpenInterest    *binance.OpenInterest       // 持仓量 (未平仓合约张数,非实际ETH)
+	OrderHistory    []binance.Order             // 历史订单数据
+	OpenOrders      []binance.Order             // 当前挂单数据
+	MarkPriceDetail *binance.MarkPrice          // 详细标记价格数据
+	PositionInfo    *PositionInfo               //持仓信息
 }
 
 // PositionInfo 持仓信息结构

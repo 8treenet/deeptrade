@@ -535,27 +535,33 @@ func (c *FuturesClient) GetMarkPrice(symbol Symbol) (*MarkPrice, error) {
 }
 
 // GetLatestFundingRate 获取最新资金费率
+// 使用 premiumIndex 端点获取当前资金费率，而不是历史记录
 func (c *FuturesClient) GetLatestFundingRate(symbol Symbol) (*FundingRateHistory, error) {
+	if symbol == "" {
+		return nil, NewError(ErrCodeInvalidSymbol, "交易对不能为空", "", "")
+	}
+
 	params := map[string]string{
 		"symbol": string(symbol),
 	}
 
-	body, err := c.retryRequest("GET", "/fapi/v1/fundingRate", params, false)
+	body, err := c.retryRequest("GET", "/fapi/v1/premiumIndex", params, false)
 	if err != nil {
 		return nil, err
 	}
 
-	var fundingHistory []FundingRateHistory
-	if err := json.Unmarshal(body, &fundingHistory); err != nil {
-		return nil, NewError(ErrCodeInvalidJSON, "解析资金费率历史失败", err.Error(), string(body))
+	var markPrice MarkPrice
+	if err := json.Unmarshal(body, &markPrice); err != nil {
+		return nil, NewError(ErrCodeInvalidJSON, "解析标记价格失败", err.Error(), string(body))
 	}
 
-	// 返回最新的费率（第一个是最近的）
-	if len(fundingHistory) > 0 {
-		return &fundingHistory[0], nil
-	}
-
-	return nil, NewError(ErrCodeInvalidSymbol, "未找到资金费率数据", "", "")
+	// 从 MarkPrice 结构中提取资金费率信息
+	return &FundingRateHistory{
+		Symbol:      markPrice.Symbol,
+		FundingRate: markPrice.LastFundingRate,
+		FundingTime: markPrice.NextFundingTime,
+		MarkPrice:   markPrice.MarkPrice,
+	}, nil
 }
 
 // GetFundingRateHistory 获取资金费率历史

@@ -36,7 +36,6 @@ func GetMarketData() (*MarketData, error) {
 	var openInterest *binance.OpenInterest
 	var orderHistory []binance.Order
 	var openOrders []binance.Order
-	var fundingRateHistorys []binance.FundingRateHistory
 	var bookTicker *binance.BookTicker
 
 	var wg sync.WaitGroup
@@ -155,22 +154,6 @@ func GetMarketData() (*MarketData, error) {
 		mu.Unlock()
 	}()
 
-	// 获取资金费率历史
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		frs, err := client.GetFundingRateHistory(symbol, 6, 0, 0)
-		if err != nil {
-			mu.Lock()
-			errs = append(errs, fmt.Errorf("获取资金费率历史失败: %v", err))
-			mu.Unlock()
-			return
-		}
-		mu.Lock()
-		fundingRateHistorys = frs
-		mu.Unlock()
-	}()
-
 	// 获取持仓量
 	wg.Add(1)
 	go func() {
@@ -250,80 +233,23 @@ func GetMarketData() (*MarketData, error) {
 	}
 
 	data := &MarketData{
-		Ticker:              ticker,
-		Klines3m:            klines3m,
-		OrderBook:           orderBook,
-		BookTicker:          bookTicker,
-		Positions:           positions,
-		Account:             account,
-		MarkPrice:           markPrice.MarkPrice,
-		FundingRate:         fundingRate,
-		OpenInterest:        openInterest,
-		OrderHistory:        orderHistory,
-		OpenOrders:          openOrders,
-		MarkPriceDetail:     markPrice,
-		FundingRateHistorys: fundingRateHistorys,
-		PositionInfo:        GetPositionInfo(positions),
+		Ticker:          ticker,
+		Klines3m:        klines3m,
+		OrderBook:       orderBook,
+		BookTicker:      bookTicker,
+		Positions:       positions,
+		Account:         account,
+		MarkPrice:       markPrice.MarkPrice,
+		FundingRate:     fundingRate,
+		OpenInterest:    openInterest,
+		OrderHistory:    orderHistory,
+		OpenOrders:      openOrders,
+		MarkPriceDetail: markPrice,
+		PositionInfo:    GetPositionInfo(positions),
 	}
 
 	log.Printf("[市场数据] 获取完成 - 当前价格: %s, 标记价格: %s", ticker.LastPrice, markPrice.MarkPrice)
 	return data, nil
-}
-
-// AnalyzeFundingRateTrend 分析资金费率历史趋势
-func AnalyzeFundingRateTrend(currentRate float64, fundingRateHistorys []binance.FundingRateHistory) string {
-	if len(fundingRateHistorys) == 0 {
-		return "暂无历史数据"
-	}
-
-	// 收集有效费率数据和时间戳
-	var rates []float64
-	var timestamps []int64
-	for _, fr := range fundingRateHistorys {
-		rate, _ := strconv.ParseFloat(fr.FundingRate, 64)
-		rates = append(rates, rate)
-		timestamps = append(timestamps, fr.FundingTime)
-	}
-
-	if len(rates) < 2 {
-		return fmt.Sprintf("当前费率: %.6f (数据不足)", currentRate)
-	}
-
-	// 找出最高和最低费率
-	maxRate := rates[0]
-	minRate := rates[0]
-
-	for _, rate := range rates {
-		if rate > maxRate {
-			maxRate = rate
-		}
-		if rate < minRate {
-			minRate = rate
-		}
-	}
-
-	// 计算实际时间范围 - 基于历史数据的最早和最晚时间
-	var earliestTime, latestTime time.Time
-	earliestTime = time.Unix(timestamps[0]/1000, 0)               // 第0条是最早的
-	latestTime = time.Unix(timestamps[len(timestamps)-1]/1000, 0) // 最后一条是最新的
-	timeRangeHours := latestTime.Sub(earliestTime).Hours()
-
-	// 计算趋势：比较最近2次费率平均值与之前1次费率平均值
-	trendDesc := "趋势平稳"
-	if len(rates) >= 3 {
-		recentAvg := (rates[len(rates)-1] + rates[len(rates)-2]) / 2 // 最近2次费率平均值（最新+倒数第二）
-		earlierAvg := rates[len(rates)-3]                            // 之前1次费率（倒数第三）
-		trend := recentAvg - earlierAvg
-
-		if trend > 0.00001 {
-			trendDesc = "趋势上升"
-		} else if trend < -0.00001 {
-			trendDesc = "趋势下降"
-		}
-	}
-
-	return fmt.Sprintf("%.0f小时范围最高: %.6f, 最低: %.6f, 当前: %.6f, %s",
-		timeRangeHours, maxRate, minRate, currentRate, trendDesc)
 }
 
 // FormatFundingAnalysis 格式化资金费率和持仓量分析
@@ -336,10 +262,6 @@ func FormatFundingAnalysis(marketData *MarketData) string {
 		// 修正显示：rate本身就是小数形式，不需要额外乘100
 		analysis.WriteString(fmt.Sprintf("  当前资金费率: %.6f (每8小时结算)\n", rate))
 		analysis.WriteString(fmt.Sprintf("  年化费率: %.2f%%\n", rate*3*365*100))
-
-		// 市场情绪解读 - 使用新的分析函数
-		trendInfo := AnalyzeFundingRateTrend(rate, marketData.FundingRateHistorys)
-		analysis.WriteString(fmt.Sprintf("  费率趋势: %s\n", trendInfo))
 
 		// 下次费率时间
 		if marketData.FundingRate.FundingTime > 0 {
